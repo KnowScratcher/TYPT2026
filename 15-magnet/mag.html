@@ -40,7 +40,7 @@
     </style>
 </head>
 <body>
-    <a href="./index.html" style="color: #00d4ff;">&lt; Back to description</a>
+
     <canvas id="canvas"></canvas>
     <div class="stats" id="energyStats">Initializing...</div>
 
@@ -54,12 +54,12 @@
             </div>
         </div>
 
-        <!-- Pendulum Length -->
+        <!-- Num Mags -->
         <div class="control-group">
-            <label>Rod Length (m) (0 - 5.0)</label>
+            <label>Num Magnets (1 - 15)</label>
             <div class="input-row">
-                <input type="range" id="lenSlider" min="0.05" max="5.0" step="0.05" value="0.25">
-                <input type="number" id="lenNum" value="0.25" step="0.1">
+                <input type="range" id="numMagsSlider" min="1" max="15" step="1" value="5">
+                <input type="number" id="numMagsNum" value="5" step="1">
             </div>
         </div>
 
@@ -99,30 +99,44 @@
             </div>
         </div>
 
-        <!-- Num Mags -->
-        <div class="control-group">
-            <label>Num Magnets (1 - 10)</label>
+        <!-- Left Configuration -->
+        <div class="control-group" style="background: rgba(0, 212, 255, 0.05); padding: 5px; border-radius: 4px;">
+            <label style="color: #00d4ff;">Left Lifted Mags</label>
             <div class="input-row">
-                <input type="range" id="numMagsSlider" min="1" max="10" step="1" value="5">
-                <input type="number" id="numMagsNum" value="5" step="1">
+                <input type="range" id="liftedLeftSlider" min="0" max="5" step="1" value="1">
+                <input type="number" id="liftedLeftNum" value="1" step="1">
             </div>
         </div>
 
-        <!-- Lifted Mags -->
-        <div class="control-group">
-            <label>Lifted Mags (1 - N)</label>
+        <div class="control-group" style="background: rgba(255, 51, 51, 0.05); padding: 5px; border-radius: 4px;">
+            <label style="color: #ff3333;">Right Lifted Mags</label>
             <div class="input-row">
-                <input type="range" id="liftedSlider" min="1" max="5" step="1" value="1">
-                <input type="number" id="liftedNum" value="1" step="1">
+                <input type="range" id="liftedRightSlider" min="0" max="5" step="1" value="0">
+                <input type="number" id="liftedRightNum" value="0" step="1">
             </div>
         </div>
 
-        <!-- Initial Angle -->
-        <div class="control-group">
-            <label>Initial Angle (deg: -90 to 0)</label>
+        <div class="control-group" style="background: rgba(0, 212, 255, 0.05); padding: 5px; border-radius: 4px;">
+            <label style="color: #00d4ff;">Left Initial Angle (deg)</label>
             <div class="input-row">
-                <input type="range" id="angleSlider" min="-90" max="0" step="1" value="-10">
-                <input type="number" id="angleNum" value="-10">
+                <input type="range" id="angleLeftSlider" min="-90" max="0" step="1" value="-15">
+                <input type="number" id="angleLeftNum" value="-15">
+            </div>
+        </div>
+
+        <div class="control-group" style="background: rgba(255, 51, 51, 0.05); padding: 5px; border-radius: 4px;">
+            <label style="color: #ff3333;">Right Initial Angle (deg)</label>
+            <div class="input-row">
+                <input type="range" id="angleRightSlider" min="0" max="90" step="1" value="15">
+                <input type="number" id="angleRightNum" value="15">
+            </div>
+        </div>
+
+        <div class="control-group" style="grid-column: span 2;">
+            <label>Rod Length (m) (0 - 5.0)</label>
+            <div class="input-row">
+                <input type="range" id="lenSlider" min="0.05" max="5.0" step="0.05" value="0.25">
+                <input type="number" id="lenNum" value="0.25" step="0.1">
             </div>
         </div>
 
@@ -143,6 +157,7 @@
                 <div class="control-group">
                     <label>Data Point</label>
                     <select id="plotTypeSelect">
+                        <option value="angleDeg">Angle (deg)</option>
                         <option value="relX">Relative X (m)</option>
                         <option value="relY">Relative Y (m)</option>
                         <option value="force">Force Strength (N)</option>
@@ -167,6 +182,7 @@
                 <div class="control-group">
                     <label>Select Data Types</label>
                     <div class="checkbox-list" id="typeCheckboxes">
+                        <div class="checkbox-item"><input type="checkbox" value="angleDeg" checked> Angle</div>
                         <div class="checkbox-item"><input type="checkbox" value="relX" checked> X</div>
                         <div class="checkbox-item"><input type="checkbox" value="relY" checked> Y</div>
                         <div class="checkbox-item"><input type="checkbox" value="force" checked> Force</div>
@@ -202,7 +218,7 @@
             const num = document.getElementById(numId);
             slider.oninput = () => {
                 num.value = isLog ? Math.pow(10, slider.value).toExponential(2) : slider.value;
-                if(sliderId === 'numMagsSlider') updateLiftedMax();
+                if(sliderId === 'numMagsSlider') updateSideLimits();
             };
             num.oninput = () => {
                 const val = parseFloat(num.value);
@@ -211,33 +227,39 @@
                 } else {
                     slider.value = num.value;
                 }
-                if(numId === 'numMagsNum') updateLiftedMax();
+                if(numId === 'numMagsNum') updateSideLimits();
             };
             if(isLog) num.value = Math.pow(10, slider.value).toExponential(2);
         }
 
-        function updateLiftedMax() {
+        function updateSideLimits() {
             const nMags = parseInt(document.getElementById('numMagsNum').value);
-            const lSlider = document.getElementById('liftedSlider');
-            const lNum = document.getElementById('liftedNum');
+            
+            const lSlider = document.getElementById('liftedLeftSlider');
+            const lNum = document.getElementById('liftedLeftNum');
             lSlider.max = nMags;
-            if (parseInt(lNum.value) > nMags) {
-                lNum.value = nMags;
-                lSlider.value = nMags;
-            }
+            if (parseInt(lNum.value) > nMags) { lNum.value = nMags; lSlider.value = nMags; }
+
+            const rSlider = document.getElementById('liftedRightSlider');
+            const rNum = document.getElementById('liftedRightNum');
+            rSlider.max = nMags;
+            if (parseInt(rNum.value) > nMags) { rNum.value = nMags; rSlider.value = nMags; }
         }
 
         setupSync('timeScaleSlider', 'timeScaleNum');
-        setupSync('angleSlider', 'angleNum');
         setupSync('numMagsSlider', 'numMagsNum');
         setupSync('spacingSlider', 'spacingNum');
         setupSync('magKSlider', 'magKNum', true);
         setupSync('lenSlider', 'lenNum');
         setupSync('massSlider', 'massNum');
         setupSync('dampingSlider', 'dampingNum', true);
-        setupSync('liftedSlider', 'liftedNum');
+        
+        setupSync('liftedLeftSlider', 'liftedLeftNum');
+        setupSync('angleLeftSlider', 'angleLeftNum');
+        setupSync('liftedRightSlider', 'liftedRightNum');
+        setupSync('angleRightSlider', 'angleRightNum');
 
-        let n, pixelsPerMeter, realL, mass, magK, realSpacing, g = 9.81, damping, initAngle, nLifted;
+        let n, pixelsPerMeter, realL, mass, magK, realSpacing, g = 9.81, damping;
         let magnets = [];
         let lastTimestamp = 0;
         let simTime = 0, accumulator = 0;
@@ -246,12 +268,12 @@
 
         let history = []; 
         const HISTORY_LIMIT = 100000; 
-        const RECORD_INTERVAL = 0.005; // Reduced from 0.02 to 0.005 for finer step resolution
+        const RECORD_INTERVAL = 0.005;
 
         class Magnet {
-            constructor(index, startAngle, isLifted) {
+            constructor(index, angle) {
                 this.index = index;
-                this.angle = isLifted ? (startAngle * Math.PI / 180) : 0;
+                this.angle = angle * Math.PI / 180;
                 this.vel = 0;
                 this.accel = 0;
                 this.lastForce = 0;
@@ -260,6 +282,7 @@
                 this.te = 0;
                 this.relX = 0;
                 this.relY = 0;
+                this.angleDeg = angle;
             }
         }
 
@@ -275,13 +298,16 @@
             const prevTypeIdx = plotTypeSelect.value;
 
             n = parseInt(document.getElementById('numMagsNum').value);
-            nLifted = parseInt(document.getElementById('liftedNum').value);
+            const nLiftedLeft = parseInt(document.getElementById('liftedLeftNum').value);
+            const angleLeft = parseFloat(document.getElementById('angleLeftNum').value);
+            const nLiftedRight = parseInt(document.getElementById('liftedRightNum').value);
+            const angleRight = parseFloat(document.getElementById('angleRightNum').value);
+
             magK = parseFloat(document.getElementById('magKNum').value);
             realL = parseFloat(document.getElementById('lenNum').value);
             mass = parseFloat(document.getElementById('massNum').value);
             damping = parseFloat(document.getElementById('dampingNum').value);
             realSpacing = parseFloat(document.getElementById('spacingNum').value);
-            initAngle = parseFloat(document.getElementById('angleNum').value);
             
             simTime = 0;
             accumulator = 0;
@@ -301,19 +327,31 @@
             const zoomY = (canvas.height - 100) / totalHeightMeters;
             pixelsPerMeter = Math.min(zoomX, zoomY, 2000); 
             
-            magnets = Array.from({length: n}, (_, i) => new Magnet(i, initAngle, i < nLifted));
+            magnets = [];
+            for(let i=0; i<n; i++) {
+                let angle = 0;
+                if (i < nLiftedLeft) angle = angleLeft;
+                else if (i >= n - nLiftedRight) angle = angleRight;
+                magnets.push(new Magnet(i, angle));
+            }
 
             plotMagnetSelect.innerHTML = '';
             magnetCheckboxes.innerHTML = '';
             for(let i=0; i<n; i++) {
                 let opt = document.createElement('option');
                 opt.value = i;
-                opt.innerText = `Magnet ${i + 1}${i < nLifted ? ' (Start Lifted)' : ''}`;
+                
+                // Determine if lifted for labeling
+                let statusLabel = "";
+                if (i < nLiftedLeft) statusLabel = " (Lifted Left)";
+                else if (i >= n - nLiftedRight) statusLabel = " (Lifted Right)";
+                
+                opt.innerText = `Magnet ${i + 1}${statusLabel}`;
                 plotMagnetSelect.appendChild(opt);
 
                 let div = document.createElement('div');
                 div.className = 'checkbox-item';
-                div.innerHTML = `<input type="checkbox" value="${i}" checked> Mag ${i+1}`;
+                div.innerHTML = `<input type="checkbox" value="${i}" checked> Mag ${i+1}${statusLabel ? '*' : ''}`;
                 magnetCheckboxes.appendChild(div);
             }
 
@@ -346,6 +384,7 @@
                 m.te = m.pe + m.ke;
                 m.relX = xPos[i] - (i * realSpacing);
                 m.relY = yPos[i];
+                m.angleDeg = m.angle * (180 / Math.PI);
             });
 
             magnets.forEach(m => {
@@ -362,7 +401,8 @@
                         force: m.lastForce,
                         ke: m.ke,
                         pe: m.pe,
-                        te: m.te
+                        te: m.te,
+                        angleDeg: m.angleDeg
                     }))
                 });
                 if (history.length > HISTORY_LIMIT) history.shift(); 
@@ -382,7 +422,6 @@
             const innerW = w - padding.left - padding.right;
             const innerH = h - padding.top - padding.bottom;
 
-            // Black Background for Graph
             activeCtx.fillStyle = '#000000';
             activeCtx.fillRect(0, 0, w, h);
 
@@ -401,7 +440,6 @@
             const getX = (t) => padding.left + ((t - timeMin) / (timeMax - timeMin)) * innerW;
             const getY = (v) => padding.top + innerH - ((v - valMin) / (valMax - valMin)) * innerH;
 
-            // Draw Graph Title
             activeCtx.fillStyle = '#eee';
             activeCtx.font = 'bold 24px Segoe UI';
             activeCtx.textAlign = 'center';
@@ -413,10 +451,7 @@
                 activeCtx.strokeStyle = '#ff4444';
                 activeCtx.lineWidth = 1.5;
                 activeCtx.setLineDash([5, 5]);
-                activeCtx.beginPath();
-                activeCtx.moveTo(padding.left, zeroY);
-                activeCtx.lineTo(w - padding.right, zeroY);
-                activeCtx.stroke();
+                activeCtx.beginPath(); activeCtx.moveTo(padding.left, zeroY); activeCtx.lineTo(w - padding.right, zeroY); activeCtx.stroke();
                 activeCtx.setLineDash([]);
             }
 
@@ -433,7 +468,7 @@
             for(let i=0; i<=5; i++) {
                 let t = timeMin + (i/5) * (timeMax - timeMin);
                 let x = getX(t);
-                activeCtx.beginPath(); activeCtx.moveTo(x, padding.top); activeCtx.lineTo(x, h - padding.bottom); activeCtx.stroke();
+                activeCtx.beginPath(); x && activeCtx.moveTo(x, padding.top); x && activeCtx.lineTo(x, h - padding.bottom); activeCtx.stroke();
                 activeCtx.textAlign = 'center';
                 activeCtx.fillText(t.toFixed(1) + "s", x, h - padding.bottom + 25);
             }
@@ -446,7 +481,7 @@
             activeCtx.save();
             activeCtx.translate(30, padding.top + innerH / 2);
             activeCtx.rotate(-Math.PI / 2);
-            activeCtx.fillText(propLabel, 0, -5);
+            activeCtx.fillText(propLabel, 0, 0);
             activeCtx.restore();
 
             activeCtx.strokeStyle = '#00d4ff';
@@ -464,33 +499,21 @@
             if (history.length < 2) return;
             const selectedMags = Array.from(magnetCheckboxes.querySelectorAll('input:checked')).map(i => parseInt(i.value));
             const selectedTypes = Array.from(typeCheckboxes.querySelectorAll('input:checked')).map(i => i.value);
-            
             if(selectedMags.length === 0 || selectedTypes.length === 0) return;
 
             if (format === 'csv') {
                 let csvRows = [];
                 let header = ['Time(s)'];
-                selectedMags.forEach(m => {
-                    selectedTypes.forEach(t => {
-                        header.push(`${m+1}-${t}`); // magnet_number-data_title format
-                    });
-                });
+                selectedMags.forEach(m => selectedTypes.forEach(t => header.push(`${m+1}-${t}`)));
                 csvRows.push(header.join(','));
-
                 history.forEach(h => {
                     let row = [h.time.toFixed(4)];
-                    selectedMags.forEach(m => {
-                        selectedTypes.forEach(t => {
-                            row.push(h.data[m][t]);
-                        });
-                    });
+                    selectedMags.forEach(m => selectedTypes.forEach(t => row.push(h.data[m][t])));
                     csvRows.push(row.join(','));
                 });
-
                 const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
+                a.href = URL.createObjectURL(blob);
                 a.download = `magnetic_cradle_data_${simTime.toFixed(1)}s.csv`;
                 a.click();
             } else {
@@ -499,19 +522,15 @@
                 tempCanvas.width = plotCanvas.width;
                 tempCanvas.height = plotCanvas.height;
                 const tctx = tempCanvas.getContext('2d');
-
                 for (let m of selectedMags) {
                     for (let t of selectedTypes) {
                         drawPlot(m, t, tctx);
-                        const dataUrl = tempCanvas.toDataURL('image/png').split(',')[1];
-                        zip.file(`mag${m+1}_${t}.png`, dataUrl, {base64: true});
+                        zip.file(`mag${m+1}_${t}.png`, tempCanvas.toDataURL('image/png').split(',')[1], {base64: true});
                     }
                 }
-
                 const content = await zip.generateAsync({type: 'blob'});
-                const url = URL.createObjectURL(content);
                 const a = document.createElement('a');
-                a.href = url;
+                a.href = URL.createObjectURL(content);
                 a.download = `plots_export_${simTime.toFixed(1)}s.zip`;
                 a.click();
                 drawPlot();
@@ -526,16 +545,12 @@
             if (!isPaused) {
                 const timeScale = parseFloat(document.getElementById('timeScaleNum').value);
                 accumulator += frameTime * timeScale;
-                while (accumulator >= dt) {
-                    physicsStep();
-                    accumulator -= dt;
-                }
+                while (accumulator >= dt) { physicsStep(); accumulator -= dt; }
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const centerX = canvas.width / 2;
             const centerY = (canvas.height - (realL * pixelsPerMeter)) / 2;
-            
             let totalKE = 0, totalPE = 0;
 
             magnets.forEach((m) => {
@@ -549,12 +564,11 @@
                 ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(pivotX, centerY); ctx.lineTo(x, y); ctx.stroke();
 
-                ctx.fillStyle = m.index < nLifted ? '#ff3333' : '#00d4ff';
+                ctx.fillStyle = (m.index < parseInt(document.getElementById('liftedLeftNum').value)) ? '#00d4ff' : 
+                               (m.index >= n - parseInt(document.getElementById('liftedRightNum').value)) ? '#ff3333' : '#777';
                 ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
-
-                totalPE += m.pe;
-                totalKE += m.ke;
+                totalPE += m.pe; totalKE += m.ke;
             });
 
             energyDisplay.innerText = `${isPaused ? '[PAUSED] ' : ''}KE: ${totalKE.toFixed(4)}J | PE: ${totalPE.toFixed(4)}J | Time: ${simTime.toFixed(2)}s`;
