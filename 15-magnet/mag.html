@@ -47,6 +47,10 @@
     <div class="stats" id="energyStats">Initializing...</div>
 
     <div class="controls">
+        <div class="control-group" style="grid-column: span 2; align-items: center;">
+            <p>Simulation Algorithm: <a href="https://zh.wikipedia.org/zh-tw/%E6%AC%A7%E6%8B%89%E6%96%B9%E6%B3%95" target="_blank" style="color: #00d4ff">Euler</a>.&nbsp;&nbsp;<a href="./mag_rk4.html"><button id="goto_euler" class="secondary">Try RK4</button></a></p>
+        </div>
+        
         <!-- Time Scale -->
         <div class="control-group">
             <label>Time Scale (0.1 - 5.0)</label>
@@ -162,6 +166,7 @@
                         <option value="angleDeg">Angle (deg)</option>
                         <option value="relX">Relative X (m)</option>
                         <option value="relY">Relative Y (m)</option>
+                        <option value="vel">Velocity (m/s)</option>
                         <option value="force">Force Strength (N)</option>
                         <option value="ke">Kinetic Energy (J)</option>
                         <option value="pe">Potential Energy (J)</option>
@@ -187,6 +192,7 @@
                         <div class="checkbox-item"><input type="checkbox" value="angleDeg" checked> Angle</div>
                         <div class="checkbox-item"><input type="checkbox" value="relX" checked> X</div>
                         <div class="checkbox-item"><input type="checkbox" value="relY" checked> Y</div>
+                        <div class="checkbox-item"><input type="checkbox" value="vel" checked> Velocity</div>
                         <div class="checkbox-item"><input type="checkbox" value="force" checked> Force</div>
                         <div class="checkbox-item"><input type="checkbox" value="ke" checked> KE</div>
                         <div class="checkbox-item"><input type="checkbox" value="pe" checked> PE</div>
@@ -401,7 +407,7 @@
 
         function physicsStep() {
             const xPos = magnets.map((m, i) => i * realSpacing + realL * Math.sin(m.angle));
-            const yPos = magnets.map((m, i) => realL * Math.cos(m.angle));
+            const yPos = magnets.map((m, i) => realL * Math.cos(m.angle) - realL);
             
             magnets.forEach((m, i) => {
                 let gravityAccel = -(g / realL) * Math.sin(m.angle) - (damping / mass) * m.vel;
@@ -410,7 +416,7 @@
                     if (i === j) continue;
                     let r = xPos[i] - xPos[j];
                     let dist = Math.max(Math.abs(r), 0.015);
-                    let force = magK / Math.pow(dist, 4);
+                    let force = magK / Math.pow(dist, 2); // change to power of 2
                     totalMagForce += (Math.sign(r) * force);
                 }
                 m.lastForce = totalMagForce;
@@ -435,6 +441,7 @@
                     data: magnets.map(m => ({
                         relX: m.relX,
                         relY: m.relY,
+                        vel: m.vel,
                         force: m.lastForce,
                         ke: m.ke,
                         pe: m.pe,
@@ -459,7 +466,7 @@
             const innerW = w - padding.left - padding.right;
             const innerH = h - padding.top - padding.bottom;
 
-            activeCtx.fillStyle = '#000000';
+            activeCtx.fillStyle = '#ffffff';
             activeCtx.fillRect(0, 0, w, h);
 
             const timeMin = history[0].time;
@@ -477,7 +484,7 @@
             const getX = (t) => padding.left + ((t - timeMin) / (timeMax - timeMin)) * innerW;
             const getY = (v) => padding.top + innerH - ((v - valMin) / (valMax - valMin)) * innerH;
 
-            activeCtx.fillStyle = '#eee';
+            activeCtx.fillStyle = '#000';
             activeCtx.font = 'bold 24px Segoe UI';
             activeCtx.textAlign = 'center';
             const propLabel = specificType ? prop : plotTypeSelect.options[plotTypeSelect.selectedIndex].text;
@@ -492,7 +499,7 @@
                 activeCtx.setLineDash([]);
             }
 
-            activeCtx.strokeStyle = '#222';
+            activeCtx.strokeStyle = '#ddd';
             activeCtx.fillStyle = '#888';
             activeCtx.font = '16px monospace';
             for(let i=0; i<=5; i++) {
@@ -518,7 +525,7 @@
             activeCtx.save();
             activeCtx.translate(30, padding.top + innerH / 2);
             activeCtx.rotate(-Math.PI / 2);
-            activeCtx.fillText(propLabel, 0, 0);
+            activeCtx.fillText(propLabel, 0, -10);
             activeCtx.restore();
 
             activeCtx.strokeStyle = '#00d4ff';
