@@ -82,7 +82,7 @@
         <div class="control-group">
             <label>Magnet Strength (k) [Log 1e-10 to 1e-4]</label>
             <div class="input-row">
-                <input type="range" id="magKSlider" min="-5" max="-1" step="0.01" value="-4">
+                <input type="range" id="magKSlider" min="-7" max="-5" step="0.001" value="-6.514">
                 <input type="number" id="magKNum">
             </div>
         </div>
@@ -416,7 +416,7 @@
                     if (i === j) continue;
                     let r = xPos[i] - xPos[j];
                     let dist = Math.max(Math.abs(r), 0.015);
-                    let force = magK / Math.pow(dist, 2); // change to power of 2
+                    let force = magK / Math.pow(dist, 3.79); // change to power of 2
                     totalMagForce += (Math.sign(r) * force);// - 0.5 * 1.225 * Math.pow(m.vel, 2) * 1.28 * Math.PI * Math.pow(0.1, 2);
                 }
                 m.lastForce = totalMagForce;
