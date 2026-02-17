@@ -303,6 +303,7 @@
         setupSync('angleRightSlider', 'angleRightNum');
 
         let n, pixelsPerMeter, realL, mass, magK, realSpacing, g = 9.81, damping;
+        let nLiftedLeft, angleLeft, nLiftedRight, angleRight;
         let magnets = [];
         let lastTimestamp = 0;
         let simTime = 0, accumulator = 0;
@@ -341,10 +342,10 @@
             const prevTypeIdx = plotTypeSelect.value;
 
             n = parseInt(document.getElementById('numMagsNum').value);
-            const nLiftedLeft = parseInt(document.getElementById('liftedLeftNum').value);
-            const angleLeft = parseFloat(document.getElementById('angleLeftNum').value);
-            const nLiftedRight = parseInt(document.getElementById('liftedRightNum').value);
-            const angleRight = parseFloat(document.getElementById('angleRightNum').value);
+            nLiftedLeft = parseInt(document.getElementById('liftedLeftNum').value);
+            angleLeft = parseFloat(document.getElementById('angleLeftNum').value);
+            nLiftedRight = parseInt(document.getElementById('liftedRightNum').value);
+            angleRight = parseFloat(document.getElementById('angleRightNum').value);
 
             magK = parseFloat(document.getElementById('magKNum').value);
             realL = parseFloat(document.getElementById('lenNum').value);
@@ -558,7 +559,7 @@
                 const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = `magnetic_cradle_data_${simTime.toFixed(1)}s.csv`;
+                a.download = `mcd_${n}mag_lift-l${angleLeft}x${nLiftedLeft}-r${angleRight}x${nLiftedRight}_l${realL}_s${realSpacing}_${simTime.toFixed(1)}s.csv`;
                 a.click();
             } else {
                 const zip = new JSZip();
@@ -575,7 +576,7 @@
                 const content = await zip.generateAsync({type: 'blob'});
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(content);
-                a.download = `plots_export_${simTime.toFixed(1)}s.zip`;
+                a.download = `mcp_${n}mag_lift-l${angleLeft}x${nLiftedLeft}-r${angleRight}x${nLiftedRight}_l${realL}_s${realSpacing}_${simTime.toFixed(1)}s.zip`;
                 a.click();
                 drawPlot();
             }
