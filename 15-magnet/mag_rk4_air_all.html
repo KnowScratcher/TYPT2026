@@ -48,7 +48,7 @@
 
     <div class="controls">
         <div class="control-group" style="grid-column: span 2; align-items: center;">
-            <p>Simulation Algorithm: <a href="https://zh.wikipedia.org/zh-tw/%E6%AC%A7%E6%8B%89%E6%96%B9%E6%B3%95" target="_blank" style="color: #00d4ff">Euler</a> with <a href="https://zh.wikipedia.org/zh-tw/%E9%98%BB%E5%8A%9B#%E9%AB%98%E9%80%9F%E6%99%82%E7%9A%84%E9%98%BB%E5%8A%9B" target="_blank" style="color: #00d4ff">air resistance</a>.&nbsp;&nbsp;<a href="./mag_rk4_air.html"><button id="goto_euler" class="secondary">Try RK4</button></a></p>
+            <p>Simulation Algorithm: <a href="https://zh.wikipedia.org/zh-tw/%E9%BE%99%E6%A0%BC-%E5%BA%93%E5%A1%94%E6%B3%95#%E5%9B%9B%E9%98%B6%E9%BE%99%E6%A0%BC-%E5%BA%93%E5%A1%94%E6%B3%95" target="_blank" style="color: #00d4ff">RK4</a> with <a href="https://zh.wikipedia.org/zh-tw/%E9%98%BB%E5%8A%9B#%E9%AB%98%E9%80%9F%E6%99%82%E7%9A%84%E9%98%BB%E5%8A%9B" target="_blank" style="color: #00d4ff">air resistance</a>.&nbsp;&nbsp;<a href="./mag_air.html"><button id="goto_euler" class="secondary">Try Euler</button></a></p>
         </div>
         
         <!-- Time Scale -->
@@ -428,54 +428,110 @@
             //plotCanvas.height = plotCanvas.clientHeight * 2;
         };
 
-        function physicsStep() {
-            const xPos = magnets.map((m, i) => i * realSpacing + realL * Math.sin(m.angle));
-            const yPos = magnets.map((m, i) => realL * Math.cos(m.angle) - realL);
-            
-            magnets.forEach((m, i) => {
-                let gravityAccel = -(g / realL) * Math.sin(m.angle) - (Math.sign(m.vel) * 0.5 * 1.225 * Math.pow(m.vel, 2) * 1.28 * Math.PI * Math.pow(damping, 2)) / mass;
+        function getAccel(index, allAngles, allVels) {
+                const mAngle = allAngles[index];
+                const mVel = allVels[index];
+
+                // 1. Gravity & Damping
+                let accel = -(g / realL) * Math.sin(mAngle) - (Math.sign(mVel) * 0.5 * 1.225 * Math.pow(mVel, 2) * 1.28 * Math.PI * Math.pow(damping, 2)) / mass;
+
+                // 2. Magnetic Forces
                 let totalMagForce = 0;
-                for (let j = 0; j < n; j++) {
-                    if (i === j) continue;
-                    let r = xPos[i] - xPos[j];
-                    let dist = Math.max(Math.abs(r), 0.015);
-                    let force = magK / Math.pow(dist, 3.79); // change to power of 2
-                    totalMagForce += (Math.sign(r) * force);// - 0.5 * 1.225 * Math.pow(m.vel, 2) * 1.28 * Math.PI * Math.pow(0.1, 2);
+                const xI = index * realSpacing + realL * Math.sin(mAngle);
+
+                for (let j = 0; j < magnets.length; j++) {
+                    if (index === j) continue;
+
+                    // Calculate where magnet J is in this hypothetical state
+                    const xJ = j * realSpacing + realL * Math.sin(allAngles[j]);
+
+                    let r = xI - xJ;
+                    let dist = Math.max(Math.abs(r), 0.015); // Prevent division by zero
+                    let force = magK / Math.pow(dist, 3.79); // change to power 2
+                    totalMagForce += (Math.sign(r) * force);
                 }
-                m.lastForce = totalMagForce;
-                m.accel = gravityAccel + (totalMagForce / mass) / realL;
-                
-                m.pe = mass * g * realL * (1 - Math.cos(m.angle));
-                m.ke = 0.5 * mass * Math.pow(realL * m.vel, 2);
-                m.te = m.pe + m.ke;
-                m.relX = xPos[i] - (i * realSpacing);
-                m.relY = yPos[i];
-                m.angleDeg = m.angle * (180 / Math.PI);
-            });
 
-            magnets.forEach(m => {
-                m.vel += m.accel * dt;
-                m.angle += m.vel * dt;
-            });
-
-            if (Math.floor(simTime / RECORD_INTERVAL) > Math.floor((simTime - dt) / RECORD_INTERVAL)) {
-                history.push({
-                    time: simTime,
-                    data: magnets.map(m => ({
-                        relX: m.relX,
-                        relY: m.relY,
-                        vel: m.vel,
-                        force: m.lastForce,
-                        ke: m.ke,
-                        pe: m.pe,
-                        te: m.te,
-                        angleDeg: m.angleDeg
-                    }))
-                });
-                if (history.length > HISTORY_LIMIT) history.shift(); 
+                // Add magnetic component to acceleration
+                accel += (totalMagForce / mass) / realL;
+                return accel;
             }
-            simTime += dt;
-        }
+
+            function physicsStep() {
+                const n = magnets.length;
+                const h = dt;
+
+                // Current state arrays
+                const angles = magnets.map(m => m.angle);
+                const vels = magnets.map(m => m.vel);
+
+                // RK4 Slopes for all magnets
+                const k1_v = new Array(n), k1_a = new Array(n);
+                const k2_v = new Array(n), k2_a = new Array(n);
+                const k3_v = new Array(n), k3_a = new Array(n);
+                const k4_v = new Array(n), k4_a = new Array(n);
+
+                // k1: Slopes at start
+                for (let i = 0; i < n; i++) {
+                    k1_v[i] = vels[i];
+                    k1_a[i] = getAccel(i, angles, vels);
+                }
+
+                // k2: Slopes at midpoint (using k1)
+                const angles2 = angles.map((a, i) => a + 0.5 * h * k1_v[i]);
+                const vels2 = vels.map((v, i) => v + 0.5 * h * k1_a[i]);
+                for (let i = 0; i < n; i++) {
+                    k2_v[i] = vels2[i];
+                    k2_a[i] = getAccel(i, angles2, vels2);
+                }
+
+                // k3: Slopes at midpoint (using k2)
+                const angles3 = angles.map((a, i) => a + 0.5 * h * k2_v[i]);
+                const vels3 = vels.map((v, i) => v + 0.5 * h * k2_a[i]);
+                for (let i = 0; i < n; i++) {
+                    k3_v[i] = vels3[i];
+                    k3_a[i] = getAccel(i, angles3, vels3);
+                }
+
+                // k4: Slopes at end (using k3)
+                const angles4 = angles.map((a, i) => a + h * k3_v[i]);
+                const vels4 = vels.map((v, i) => v + h * k3_a[i]);
+                for (let i = 0; i < n; i++) {
+                    k4_v[i] = vels4[i];
+                    k4_a[i] = getAccel(i, angles4, vels4);
+                }
+
+                // Final Update
+                magnets.forEach((m, i) => {
+                    m.vel += (h / 6) * (k1_a[i] + 2 * k2_a[i] + 2 * k3_a[i] + k4_a[i]);
+                    m.angle += (h / 6) * (k1_v[i] + 2 * k2_v[i] + 2 * k3_v[i] + k4_v[i]);
+
+                    // Recalculate Energy/Pos for UI
+                    const yPos = realL * Math.cos(m.angle) - realL;
+                    m.pe = mass * g * realL * (1 - Math.cos(m.angle)); //mass * g * -yPos;
+                    m.ke = 0.5 * mass * Math.pow(realL * m.vel, 2);
+                    m.te = m.pe + m.ke;
+                    m.relX = realL * Math.sin(m.angle);
+                    m.relY = realL * Math.cos(m.angle) - realL;
+                    m.angleDeg = m.angle * (180 / Math.PI);
+                });
+
+                if (Math.floor(simTime / RECORD_INTERVAL) > Math.floor((simTime - dt) / RECORD_INTERVAL)) {
+                    history.push({
+                        time: simTime,
+                        data: magnets.map(m => ({
+                            relX: m.relX,
+                            relY: m.relY,
+                            force: m.lastForce,
+                            ke: m.ke,
+                            pe: m.pe,
+                            te: m.te,
+                            angleDeg: m.angleDeg
+                        }))
+                    });
+                    if (history.length > HISTORY_LIMIT) history.shift();
+                }
+                simTime += dt;
+            }
 
         function drawPlot(specificMag = null, specificType = null, targetCtx = null) {
             if (history.length < 2) return;
