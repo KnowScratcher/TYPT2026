@@ -73,8 +73,8 @@
         <div class="control-group">
             <label>Magnet Mass (kg) (0 - 5.0)</label>
             <div class="input-row">
-                <input type="range" id="massSlider" min="0.01" max="5.0" step="0.01" value="0.25">
-                <input type="number" id="massNum" value="0.25" step="0.01">
+                <input type="range" id="massSlider" min="0.01" max="5.0" step="0.01" value="0.014">
+                <input type="number" id="massNum" value="0.014" step="0.01">
             </div>
         </div>
 
@@ -100,8 +100,8 @@
         <div class="control-group">
             <label>Damping (0 - 1.0)</label>
             <div class="input-row">
-                <input type="range" id="dampingSlider" min="-8" max="-3" step="0.01" value="-4">
-                <input type="number" id="dampingNum" value="1e-4">
+                <input type="range" id="dampingSlider" min="-8" max="-3" step="0.01" value="-3.10">
+                <input type="number" id="dampingNum" value="7.9e-4">
             </div>
         </div>
 
@@ -125,8 +125,8 @@
         <div class="control-group" style="background: rgba(0, 212, 255, 0.05); padding: 5px; border-radius: 4px;">
             <label style="color: #00d4ff;">Left Initial Angle (deg)</label>
             <div class="input-row">
-                <input type="range" id="angleLeftSlider" min="-90" max="0" step="1" value="-15">
-                <input type="number" id="angleLeftNum" value="-15">
+                <input type="range" id="angleLeftSlider" min="-90" max="0" step="1" value="-20">
+                <input type="number" id="angleLeftNum" value="-20">
             </div>
         </div>
 
@@ -141,8 +141,8 @@
         <div class="control-group" style="grid-column: span 2;">
             <label>Rod Length (m) (0 - 5.0)</label>
             <div class="input-row">
-                <input type="range" id="lenSlider" min="0.05" max="5.0" step="0.05" value="0.25">
-                <input type="number" id="lenNum" value="0.25" step="0.1">
+                <input type="range" id="lenSlider" min="0.05" max="5.0" step="0.05" value="0.35">
+                <input type="number" id="lenNum" value="0.35" step="0.1">
             </div>
         </div>
 
@@ -434,7 +434,7 @@
             const yPos = magnets.map((m, i) => realL * Math.cos(m.angle) - realL);
             
             magnets.forEach((m, i) => {
-                let gravityAccel = -(g / realL) * Math.sin(m.angle) - (damping / mass) * m.vel;
+                let gravityAccel = -(g / realL) * Math.sin(m.angle) - (damping / mass) * m.vel; // simple damping proportional to velocity and direction
                 let totalMagForce = 0;
                 for (let j = 0; j < n; j++) {
                     if (i === j) continue;
@@ -557,8 +557,8 @@
             ctx.fillText(propLabel, 0, -10);
             ctx.restore();
 
-            ctx.strokeStyle = '#00d4ff';
-            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#2d588e';
+            ctx.lineWidth = 3.5;
             ctx.beginPath();
             history.forEach((point, i) => {
                 const x = getX(point.time);
